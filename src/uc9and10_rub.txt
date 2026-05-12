@@ -1,92 +1,79 @@
-UC09: Submit Proof of Completion
 
-Goal: To allow a Job Seeker to upload evidence of work, update job status, and notify the poster.
-Actor: Job Seeker
+### **UC09: Submit Proof of Completion**
 
-Preconditions
-The User is logged into the UniLink system.
+**Goal:** To allow a Job Seeker to provide evidence of work, update the job status to "Pending Approval," and trigger a notification to the Job Poster.
+**Actor:** Job Seeker
 
-The User is assigned to a job with the status "In Progress."
+**Preconditions:**
 
-Basic Flow
-1. Actor: Selects the "My Active Jobs" section from the menu.
+* The User is logged into the UniLink system.
+* The User is assigned to a specific job with the status "In Progress."
 
-2. System (Boundary - MyActiveJobs Page): Requests the list of active jobs for the user.
+**Basic Flow:**
 
-3. System (Control - JobController): Retrieves the specific job data from the Entity (Job) and displays them on the Boundary (MyActiveJobs Page).
+1. **Actor:** Selects the "My Active Jobs" section from the main menu.
+2. **System (Boundary - MyActiveJobs Page):** Requests the list of active jobs for the user.
+3. **System (Control - JobController):** Retrieves the specific job data from the **Entity (Job)** and displays them on the **Boundary (MyActiveJobs Page)**.
+4. **Actor:** Selects the specific job to submit proof for.
+5. **System (Boundary - JobDetails Page):** Displays the details and provides a "Submit Proof" action.
+6. **Actor:** Clicks the "Submit Proof" button.
+7. **System (Control - SubmitProof Handler):** Processes the request and opens the **Boundary (Proof Submission Form)**.
+8. **Actor:** Enters a text summary, uploads the proof file, and clicks "Submit."
+9. **System (Control - SubmitProof Handler):** Receives the input and sends the file to the **Control (FileValidator)** for format verification.
+10. **System (Control - FileValidator):** Confirms that the file is in a supported format (Image or PDF).
+11. **System (Control - SubmitProof Handler):** * Creates and saves a new **Entity (Proof)** record.
+* Updates the **Entity (Job)** status to "Pending Approval."
+* Triggers the **Boundary (Notification Service)** to alert the Job Poster.
 
-4. Actor: Selects the specific job to submit proof for.
 
-5. System (Boundary - JobDetails Page): Displays the details and provides the "Submit Proof" button.
+12. **System (Boundary - JobDetails Page):** Refreshes to display a success message: "Proof submitted successfully. Awaiting poster approval."
 
-6. Actor: Clicks the "Submit Proof" button.
+**Alternative Flow 1: Incorrect File Format**
 
-7. System (Boundary - Proof Submission Form): Opens the submission interface.
-
-8. Actor: Enters a text summary, uploads a file, and clicks "Submit."
-
-9. System (Control - SubmitProof Handler): Receives the input and passes the file to the Control (FileValidator).
-
-10. System (Control - FileValidator): Validates that the file is in a supported format (Image or PDF).
-
-11. System (Control - SubmitProof Handler): * Creates and saves a new Entity (Proof) record.
-
-- Updates the Entity (Job) status to "Pending Approval."
-
-- Triggers the Boundary (Notification Service) to alert the Job Poster.
-
-12. System (Boundary - Confirmation Message View): Displays "Proof submitted successfully."
-
-Alternative Flow 1: Incorrect File Format
-10.a.1: The Control (FileValidator) identifies an unsupported format (e.g., .exe).
-
-10.a.2: The Control (SubmitProof Handler) sends an error signal back to the UI.
-
-10.a.3: The Boundary (Proof Submission Form) displays the message: "Invalid file format. Please upload a PDF or Image."
+* **10.a.1:** The **Control (FileValidator)** identifies an unsupported format (e.g., .exe or .zip).
+* **10.a.2:** The **Control (SubmitProof Handler)** receives the validation failure.
+* **10.a.3:** The **Boundary (Proof Submission Form)** displays the error message: "Invalid file format. Please upload a PDF or Image."
 
 
 
-UC10: Submit Peer Review
-Goal: To allow a user to rate and provide feedback for another user, updating their reputation score.
-Actor: User (Student, Professor, or Company)
 
-Preconditions
-- The User is logged into UniLink.
+### **UC10: Submit Peer Review**
 
-- A Job or Activity interaction is marked as "Completed."
+**Goal:** To allow a user to rate and provide feedback for another user, updating their reputation score.
+**Actor:** User (Student, Professor, or Company)
 
-- No review has been submitted for this specific interaction yet.
+**Preconditions:**
 
-Basic Flow
-1. Actor: Navigates to "Pending Reviews" via the Boundary (UserProfile Page).
+* The User is logged into UniLink.
+* A Job or Activity interaction is marked as "Completed."
+* No review has been submitted for this specific interaction yet.
 
-2. System (Control - Review Controller): Retrieves items requiring review from the Entity (Job/Activity).
+**Basic Flow:**
 
-3. System (Boundary - Pending ReviewsPage): Displays the list of reviewable items.
+1. **Actor:** Navigates to "Pending Reviews" via the **Boundary (UserProfile Page)**.
+2. **System (Boundary - UserProfile Page):** Calls `getPendingItems()` on the **Control (Review Controller)**.
+3. **System (Control - Review Controller):** Retrieves items requiring review from the **Entity (Job/Activity)** using `fetchCompletedTasks()`.
+4. **System (Boundary - Pending ReviewsPage):** Displays the list of reviewable items returned by the controller.
+5. **Actor:** Selects the specific item/user to review.
+6. **System (Boundary - ReviewForm):** Displays the 1-5 star selector and mandatory comment field.
+7. **Actor:** Selects a rating, enters a comment, and clicks "Submit."
+8. **System (Boundary - ReviewForm):** Sends data to the **Control (SubmitReview Handler)** via `processReview()`.
+9. **System (Control - SubmitReview Handler):** Calls `validate(rating, comment)` on the **Control (InputValidator)**.
+10. **System (Control - InputValidator):** Confirms both fields are present and returns a success signal.
+11. **System (Control - SubmitReview Handler):** * Calls `save()` on the **Entity (Review)**.
+* Calls `updateReputation(targetID)` on the **Control (Rating Calculator)**.
 
-4. Actor: Selects the specific item/user to review.
 
-5. System (Boundary - ReviewForm): Displays the 1-5 star selector and mandatory comment field.
+12. **System (Control - Rating Calculator):** Calculates the new average and calls `setAverageRating()` on the **Entity (UserProfile)** of the target user.
+13. **System (Control - SubmitReview Handler):** * Triggers the **Boundary (Notification Service)** to send an alert.
+* Returns a success signal to the **Boundary (UserProfile Page)**.
 
-6. Actor: Selects a rating, enters a comment, and clicks "Submit."
 
-7. System (Control - SubmitReview Handler): Sends the data to the Control (InputValidator).
+14. **System (Boundary - UserProfile Page):** Displays the success message: "Your review has been submitted."
 
-8. System (Control - InputValidator): Confirms that both the rating and comment are present.
+**Alternative Flow 1: Missing Required Comment**
 
-9. System (Control - SubmitReview Handler): * Saves the data into a new Entity (Review).
+* **9.a.1:** The **Control (InputValidator)** detects the comment field is empty.
+* **9.a.2:** The **Control (SubmitReview Handler)** returns an error signal to the form.
+* **9.a.3:** The **Boundary (ReviewForm)** highlights the field and displays: "Please provide a comment describing your experience."
 
-- Requests a calculation update from the Control (Rating Calculator).
-
-10. System (Control - Rating Calculator): Recalculates the average score and updates the Entity (UserProfile) of the target user.
-
-11. System (Boundary - Notification Service): Sends a "New Review" notification to the target user.
-
-12. System (Boundary - Confirmation Message): Displays success message: "Your review has been submitted."
-
-Alternative Flow 1: Missing Required Comment
-8.a.1: The Control (InputValidator) detects the comment field is empty.
-
-8.a.2: The Control (SubmitReview Handler) returns an error state to the UI.
-
-8.a.3: The Boundary (ReviewForm) highlights the field and displays: "Please provide a comment describing your experience."
